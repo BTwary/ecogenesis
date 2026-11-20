@@ -204,7 +204,7 @@ function Shell() {
           {view === "biodiversity" && <BiodiversityView />}
           {view === "map" && <MapView />}
           {view === "community" && <CommunityView />}
-          {view === "reports" && <ReportsView navigate={navigate} />}
+          {view === "reports" && <ReportsView />}
         </div>
       </main>
       <Footer navigate={navigate} />

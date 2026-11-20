@@ -29,7 +29,7 @@ interface WasteResponse {
   summary: { totalKg: number; landfillDiversionPercent: number | null; avoidedKgCo2e: number; avoidanceMethod: string; byDisposal: Record<string, number> };
 }
 
-export default function ReportsView() {
+export default function ReportsView({ navigate }: { navigate?: (v: any) => void } = {}) {
   const summary = useAsync<SummaryResponse>(() => api("/api/me/summary"), []);
   const water = useAsync<WaterResponse>(() => api("/api/water"), [summary.data]);
   const waste = useAsync<WasteResponse>(() => api("/api/waste"), [summary.data]);
