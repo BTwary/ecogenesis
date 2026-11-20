@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+model User {
+  id           String   @id @default(cuid())
+  email        String?  @unique // null for anonymous (guest) sessions
+  passwordHash String?
+  name         String?
+  accountType  String   @default("individual") // individual|household|school|business|ngo|community
+  isAnonymous  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  footprintResults  FootprintResult[]
+  goals             Goal[]
+  wasteLogs         WasteLog[]
+  waterLogs         WaterLog[]
+  observations      Observation[]
+  participations    Participation[]
+  comments          Comment[]
+  assistantMessages AssistantMessage[]
+}
+
+// ---------------------------------------------------------------------------
+// Footprint calculator
+// ---------------------------------------------------------------------------
+model FootprintResult {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inputs      String // JSON of raw calculator inputs
+  totalKgCo2e Float
+  categories  String // JSON { transport, energy, food, goods, waste, water }
+  factorsJson String // JSON snapshot of emission factors used (traceability)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Sustainable living planner
+// ---------------------------------------------------------------------------
+model Goal {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  category  String   @default("general") // energy|water|waste|transport|food|nature|general
+  target    Float?
+  unit      String?
+  period    String   @default("month") // week|month|custom
+  startDate DateTime
+  endDate   DateTime?
+  status    String   @default("active") // active|completed|cancelled
+  createdAt DateTime @default(now())
+
+  progress GoalProgress[]
+
+  @@index([userId, status])
+}
+
+model GoalProgress {
+  id        String   @id @default(cuid())
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  date      DateTime
+  value     Float
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([goalId, date])
+}
+
+// ---------------------------------------------------------------------------
+// Waste tracking
+// ---------------------------------------------------------------------------
+model WasteLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String // plastic|paper|organic|glass|metal|ewaste|hazardous|textile|other
+  disposal  String // recycled|landfill|compost|reused|hazardous-facility|unknown
+  item      String
+  kg        Float
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Water tracking
+// ---------------------------------------------------------------------------
+model WaterLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity  String // shower|toilet|laundry|dishes|cooking|drinking|cleaning|garden|other
+  liters    Float
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+// ---------------------------------------------------------------------------
+// Biodiversity observations (community submissions)
+// ---------------------------------------------------------------------------
+model Observation {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  speciesGuess String
+  kind         String   @default("flora") // flora|fauna|fungi|habitat
+  notes        String?
+  photo        String? // small data-URL image, user-owned
+  lat          Float?
+  lng          Float?
+  placeName    String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Community projects + global action map
+// ---------------------------------------------------------------------------
+model Project {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  category     String // restoration|tree-planting|recycling|renewable|cleanup|biodiversity|water|education
+  status       String   @default("active") // planned|active|completed
+  lat          Float
+  lng          Float
+  placeName    String
+  orgName      String?
+  impactClaim  String?
+  verification String   @default("self-reported") // self-reported|verified
+  isDemo       Boolean  @default(false) // true => clearly-marked demonstration entry
+  sourceNote   String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  participations Participation[]
+  comments       Comment[]
+
+  @@index([category, status])
+}
+
+model Participation {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("participant")
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// AI assistant history
+// ---------------------------------------------------------------------------
+model AssistantMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String // user|assistant
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Environmental data cache with full provenance (external connectors)
+// ---------------------------------------------------------------------------
+model DataObservation {
+  id           String   @id @default(cuid())
+  provider     String // open-meteo | nasa-power | gbif | openaq | datagovin
+  datasetId    String // e.g. cams_eu_air_quality, power_climatology_point, era5_archive
+  parameter    String // pm2_5, temperature_2m_max, precipitation_sum, ghi_monthly ...
+  locationKey  String // rounded "lat,lng"
+  lat          Float
+  lng          Float
+  observedAt   DateTime // original observation timestamp
+  value        Float
+  unit         String // normalised unit
+  originalUnit String // provider-native unit (if different)
+  meta         String? // JSON: sourceUrl, licence, native fields, notes
+  quality      String   @default("good") // good|stale|invalid|estimated
+  retrievedAt  DateTime @default(now()) // when WE fetched it
+
+  @@unique([provider, datasetId, parameter, locationKey, observedAt])
+  @@index([provider, parameter, locationKey, observedAt])
+}
+
+// Connector health / audit trail
+model ConnectorLog {
+  id        String   @id @default(cuid())
+  provider  String
+  endpoint  String
+  status    String // ok|error|disabled
+  message   String?
+  latencyMs Int?
+  createdAt DateTime @default(now())
+
+  @@index([provider, createdAt])
+}

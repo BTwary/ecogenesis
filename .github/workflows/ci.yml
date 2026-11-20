@@ -1,0 +1,39 @@
+name: ECOGENESIS Next.js CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Regression Tests & Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Initialize environment
+        run: |
+          cp .env.example .env
+          echo "AUTH_SECRET=ci-test-secret-minimum-32-characters-for-nextjs" >> .env
+          echo 'DATABASE_URL="file:../db/custom.db"' >> .env
+
+      - name: Generate Prisma client & initialize SQLite
+        run: npm run db:setup
+
+      - name: Run regression tests
+        run: npm test
+
+      - name: Build Next.js application
+        run: npm run build

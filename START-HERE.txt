@@ -1,0 +1,35 @@
+ECOGENESIS — QUICK START (WINDOWS)
+=================================
+
+1. Install Node.js 22.16 or newer: https://nodejs.org/
+2. Extract this ZIP completely to a writable folder, e.g. C:\ECOGENESIS.
+3. Double-click: Setup-ECOGENESIS.bat
+4. Paste an OpenAQ key if you have one. Press Enter to skip.
+5. Paste a data.gov.in key if you have one. Press Enter to skip.
+6. Wait while the setup installs packages, creates the local database and runs tests.
+7. Your browser opens at http://localhost:3000. Keep the terminal open.
+
+For later launches, double-click Start-ECOGENESIS.bat.
+For provider registration and detailed setup, open API-KEYS.md.
+
+KEYS ALREADY IMPLEMENTED
+------------------------
+No key required: Open-Meteo, NASA POWER, GBIF.
+Optional keys: OpenAQ, data.gov.in (CPCB).
+
+The local assistant falls back to curated rule-based guidance if its original
+hosted AI runtime is unavailable. This is not generative AI. Photo-based waste
+recognition still requires an image-capable AI provider.
+
+NOT CONNECTED IN THIS VERSION
+-----------------------------
+Direct Copernicus Sentinel imagery, Global Forest Watch forest-change API and
+National Water Data Portal direct APIs are not implemented. Do not add keys for
+these expecting them to activate; they need additional connector development.
+
+IMPORTANT
+---------
+This package runs a local development server for one machine. A public internet
+website requires a separate production host, HTTPS, persistent database, secure
+environment variables, backups and a production deployment review. The free
+hosted Open-Meteo API is restricted to non-commercial use.
