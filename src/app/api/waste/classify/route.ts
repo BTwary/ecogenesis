@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
 
     const { default: ZAI } = await import("z-ai-web-dev-sdk");
     const zai = await ZAI.create();
-    const completion = await zai.chat.completions.createVision({
+    const completion = await (zai.chat.completions.createVision as any)({
+      model: "glm-4v",
       messages: [
         {
           role: "user",
