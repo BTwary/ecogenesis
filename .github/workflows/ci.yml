@@ -14,26 +14,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: bun install --frozen-lockfile
 
       - name: Initialize environment
         run: |
           cp .env.example .env
-          echo "AUTH_SECRET=ci-test-secret-minimum-32-characters-for-nextjs" >> .env
+          echo 'AUTH_SECRET="ci-test-secret-minimum-32-characters-for-nextjs"' >> .env
           echo 'DATABASE_URL="file:../db/custom.db"' >> .env
 
       - name: Generate Prisma client & initialize SQLite
-        run: npm run db:setup
+        run: bun run db:setup
 
       - name: Run regression tests
-        run: npm test
+        run: node --experimental-strip-types --test tests/*.test.mjs
 
       - name: Build Next.js application
-        run: npm run build
+        run: bun run build
